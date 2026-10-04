@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>টেন্ডার হিসাব</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,"Noto Sans Bengali",sans-serif;background:#f5f7fb;color:#172033}
+header{background:#17324d;color:white;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+header h1{font-size:20px;margin:0}.wrap{display:flex;min-height:calc(100vh - 60px)}
+nav{width:220px;background:#fff;border-right:1px solid #ddd;padding:12px;position:sticky;top:60px;height:calc(100vh - 60px)}
+nav button{display:block;width:100%;padding:12px 10px;margin:5px 0;border:0;background:#fff;text-align:left;border-radius:8px;cursor:pointer;font-size:15px}
+nav button.active,nav button:hover{background:#eaf2f8}
+main{flex:1;padding:20px;max-width:1400px;margin:auto;width:100%}
+.page{display:none}.page.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.card{background:white;border:1px solid #e2e6ec;border-radius:10px;padding:16px}.card small{color:#697586}.card strong{display:block;font-size:22px;margin-top:7px}
+.panel{background:#fff;border:1px solid #e2e6ec;border-radius:10px;padding:18px;margin-bottom:18px}
+.panel h2{font-size:18px;margin:0 0 14px}
+form.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+label{font-size:13px;color:#465365}input,select,textarea{width:100%;padding:10px;margin-top:5px;border:1px solid #ccd3dc;border-radius:7px;font-size:14px}textarea{min-height:70px}
+.actions{display:flex;gap:8px;align-items:end}.btn{border:0;border-radius:7px;padding:10px 14px;cursor:pointer;background:#17324d;color:#fff}.btn.secondary{background:#eef1f5;color:#172033}.btn.danger{background:#b42318}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:9px;border-bottom:1px solid #e7e9ed;text-align:left;vertical-align:top}th{background:#f8fafc}
+.badge{display:inline-block;padding:4px 7px;border-radius:12px;background:#eef2f6;font-size:12px}.green{background:#e8f5e9}.yellow{background:#fff6d8}.red{background:#fdecec}
+.muted{color:#687386}.right{text-align:right}.toolbar{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+@media(max-width:900px){nav{width:170px}.cards{grid-template-columns:repeat(2,1fr)}form.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){header{position:static}.wrap{display:block}nav{position:static;width:100%;height:auto;display:flex;overflow:auto;border-right:0;border-bottom:1px solid #ddd}nav button{min-width:max-content;text-align:center}main{padding:12px}.cards{grid-template-columns:1fr 1fr}form.grid{grid-template-columns:1fr}.panel{padding:12px;overflow:auto}table{min-width:700px}}
+</style>
+
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="টেন্ডার হিসাব">
+
+</head>
+<body>
+<header><h1>টেন্ডার হিসাব</h1><span id="syncState">লোকাল ডেটা</span></header>
+<div class="wrap">
+<nav>
+<button class="active" onclick="showPage('dashboard',this)">ড্যাশবোর্ড</button>
+<button onclick="showPage('tenders',this)">টেন্ডার</button>
+<button onclick="showPage('projects',this)">প্রজেক্ট</button>
+<button onclick="showPage('expenses',this)">খরচ</button>
+<button onclick="showPage('vendors',this)">ভেন্ডর</button>
+<button onclick="showPage('investors',this)">ইনভেস্টর</button>
+<button onclick="showPage('reports',this)">রিপোর্ট</button>
+<button onclick="showPage('settings',this)">সেটিংস</button>
+</nav>
+<main>
+
+<section id="dashboard" class="page active">
+<h2>ড্যাশবোর্ড</h2>
+<div class="cards">
+<div class="card"><small>মোট টেন্ডার</small><strong id="cTenders">0</strong></div>
+<div class="card"><small>মোট প্রজেক্ট</small><strong id="cProjects">0</strong></div>
+<div class="card"><small>টেন্ডার সিকিউরিটি Pending</small><strong id="cTS">৳0</strong></div>
+<div class="card"><small>PG Pending</small><strong id="cPG">৳0</strong></div>
+<div class="card"><small>মোট Contract Value</small><strong id="cContract">৳0</strong></div>
+<div class="card"><small>মোট Project Cost</small><strong id="cCost">৳0</strong></div>
+<div class="card"><small>মোট Profit</small><strong id="cProfit">৳0</strong></div>
+<div class="card"><small>মোট Loss</small><strong id="cLoss">৳0</strong></div>
+</div>
+<div class="panel"><h2>সাম্প্রতিক প্রজেক্ট</h2><div id="recentProjects"></div></div>
+</section>
+
+<section id="tenders" class="page">
+<div class="toolbar"><h2>টেন্ডার</h2><button class="btn" onclick="toggleForm('tenderForm')">+ নতুন টেন্ডার</button></div>
+<div class="panel" id="tenderForm" style="display:none"><h2>টেন্ডার তথ্য</h2>
+<form class="grid" onsubmit="addTender(event)">
+<label>Tender ID<input id="tId" required></label>
+<label>টেন্ডার নাম<input id="tName" required></label>
+<label>ডিপার্টমেন্ট<input id="tDept"></label>
+<label>Tender Security<input id="tSec" type="number" min="0" value="0"></label>
+<label>Schedule Price<input id="tSch" type="number" min="0" value="0"></label>
+<label>Other Tender Expense<input id="tOther" type="number" min="0" value="0"></label>
+<label style="grid-column:1/-1">Note<textarea id="tNote"></textarea></label>
+<div class="actions"><button class="btn">Save</button><button type="button" class="btn secondary" onclick="toggleForm('tenderForm')">Cancel</button></div>
+</form></div>
+<div class="panel"><div id="tenderTable"></div></div>
+</section>
+
+<section id="projects" class="page">
+<div class="toolbar"><h2>প্রজেক্ট</h2></div>
+<div class="panel"><h2>নতুন Project: Awarded Tender নির্বাচন করুন</h2>
+<form class="grid" onsubmit="convertProject(event)">
+<label style="grid-column:span 2">Tender<select id="projectTender" required></select></label>
+<label>Contract Value<input id="pContract" type="number" min="0" required></label>
+<label>Performance Guarantee<input id="pPg" type="number" min="0" value="0"></label>
+<label>Start Date<input id="pStart" type="date"></label>
+<label>End Date<input id="pEnd" type="date"></label>
+<label style="grid-column:1/-1">Note<textarea id="pNote"></textarea></label>
+<div><button class="btn">Create Project</button></div>
+</form></div>
+<div class="panel"><div id="projectTable"></div></div>
+</section>
+
+<section id="expenses" class="page">
+<h2>প্রজেক্ট খরচ</h2>
+<div class="panel"><form class="grid" onsubmit="addExpense(event)">
+<label>Project<select id="eProject" required></select></label>
+<label>Date<input id="eDate" type="date" required></label>
+<label>Category<select id="eCat"><option>Material/Purchase</option><option>Transport/Delivery</option><option>Loading/Unloading</option><option>Labour</option><option>Other</option></select></label>
+<label>Amount<input id="eAmount" type="number" min="0" required></label>
+<label>Vendor (optional)<select id="eVendor"></select></label>
+<label>Description<input id="eDesc"></label>
+<div><button class="btn">খরচ যোগ করুন</button></div>
+</form></div>
+<div class="panel"><div id="expenseTable"></div></div>
+</section>
+
+<section id="vendors" class="page">
+<h2>ভেন্ডর</h2>
+<div class="panel"><form class="grid" onsubmit="addVendor(event)">
+<label>Vendor Name<input id="vName" required></label><label>Contact<input id="vContact"></label><label>Address<input id="vAddress"></label>
+<label>Transaction Type<select id="vType"><option value="advance">Advance/Payment to Vendor</option><option value="purchase">Material Received/Purchase</option><option value="adjustment">Adjustment</option></select></label>
+<label>Amount<input id="vAmount" type="number" min="0" value="0"></label><label>Note<input id="vNote"></label>
+<div><button class="btn">Vendor/Transaction Save</button></div>
+</form></div>
+<div class="panel"><div id="vendorTable"></div></div>
+</section>
+
+<section id="investors" class="page">
+<h2>ইনভেস্টর</h2>
+<div class="panel"><p class="muted">দুইজন মালিকের অংশীদারিত্ব ৫০% + ৫০%। নাম Settings থেকে পরিবর্তন করা যাবে।</p>
+<form class="grid" onsubmit="addInvestorTx(event)">
+<label>Investor<select id="iInvestor"></select></label>
+<label>Date<input id="iDate" type="date" required></label>
+<label>Transaction<select id="iType"><option value="contribution">Capital Contribution</option><option value="return">Capital Return</option></select></label>
+<label>Amount<input id="iAmount" type="number" min="0" required></label>
+<label style="grid-column:span 2">Note<input id="iNote"></label>
+<div><button class="btn">Save</button></div>
+</form></div>
+<div class="panel"><div id="investorTable"></div></div>
+</section>
+
+<section id="reports" class="page">
+<h2>রিপোর্ট</h2>
+<div class="panel"><h2>Project Profit/Loss</h2><div id="reportTable"></div></div>
+<div class="panel"><h2>Investor Summary</h2><div id="investorSummary"></div></div>
+</section>
+
+<section id="settings" class="page">
+<h2>সেটিংস</h2>
+<div class="panel">
+<h2>Investor Names</h2>
+<form class="grid" onsubmit="saveSettings(event)">
+<label>Investor 1<input id="sInv1"></label><label>Investor 2<input id="sInv2"></label>
+<div><button class="btn">Save Settings</button></div>
+</form>
+</div>
+<div class="panel">
+<h2>Google Sheets Sync</h2>
+<p>এই MVP-তে ডেটা ব্রাউজারের local storage-এ নিরাপদভাবে রাখা হচ্ছে। Google Sheets সংযোগের জন্য পরবর্তী ধাপে Google OAuth/Apps Script endpoint যুক্ত করা যাবে।</p>
+<button class="btn" onclick="exportJSON()">Backup JSON Download</button>
+<button class="btn secondary" onclick="exportCSV()">Export CSV</button>
+</div>
+</section>
+
+</main></div>
+<script>
+const key='tenderHisabV1';
+let db=JSON.parse(localStorage.getItem(key)||'{"tenders":[],"projects":[],"expenses":[],"vendors":[],"vendorTx":[],"investorTx":[],"settings":{"inv1":"Investor 1","inv2":"Investor 2"}}');
+function save(){localStorage.setItem(key,JSON.stringify(db));document.getElementById('syncState').textContent='লোকাল ডেটা সংরক্ষিত';renderAll()}
+function money(n){return '৳'+Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2})}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function showPage(id,btn){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');renderAll()}
+function toggleForm(id){let x=document.getElementById(id);x.style.display=x.style.display==='none'?'block':'none'}
+function addTender(e){e.preventDefault();if(db.tenders.some(t=>t.tenderId===tId.value.trim()))return alert('এই Tender ID আগে আছে।');db.tenders.push({id:uid(),tenderId:tId.value.trim(),name:tName.value,dept:tDept.value,security:+tSec.value||0,schedule:+tSch.value||0,other:+tOther.value||0,status:'Participated',securityStatus:'Pending',returnDate:'',note:tNote.value,createdAt:new Date().toISOString()});e.target.reset();toggleForm('tenderForm');save()}
+function addExpense(e){e.preventDefault();db.expenses.push({id:uid(),projectId:eProject.value,date:eDate.value,cat:eCat.value,amount:+eAmount.value, vendorId:eVendor.value,desc:eDesc.value});e.target.reset();save()}
+function convertProject(e){e.preventDefault();let t=db.tenders.find(x=>x.id===projectTender.value);if(!t)return; if(db.projects.some(p=>p.tenderId===t.tenderId))return alert('এই Tender ইতোমধ্যে Project হয়েছে।');db.projects.push({id:uid(),projectId:'P-'+Date.now(),tenderId:t.tenderId,name:t.name,dept:t.dept,contract:+pContract.value,pg:+pPg.value||0,pgStatus:'Pending',pgReleaseDate:'',start:pStart.value,end:pEnd.value,note:pNote.value,status:'Running'});t.status='Awarded';save();alert('Project তৈরি হয়েছে।')}
+function addVendor(e){e.preventDefault();let v=db.vendors.find(x=>x.name.toLowerCase()===vName.value.trim().toLowerCase());if(!v){v={id:uid(),name:vName.value.trim(),contact:vContact.value,address:vAddress.value};db.vendors.push(v)}if(+vAmount.value>0)db.vendorTx.push({id:uid(),vendorId:v.id,type:vType.value,amount:+vAmount.value,note:vNote.value,date:new Date().toISOString().slice(0,10)});e.target.reset();save()}
+function addInvestorTx(e){e.preventDefault();db.investorTx.push({id:uid(),investor:iInvestor.value,date:iDate.value,type:iType.value,amount:+iAmount.value,note:iNote.value});e.target.reset();save()}
+function returnSec(id){let t=db.tenders.find(x=>x.id===id);if(!t||t.securityStatus==='Returned')return;if(confirm('Tender Security return হয়েছে নিশ্চিত?')){t.securityStatus='Returned';t.returnDate=new Date().toISOString().slice(0,10);save()}}
+function releasePg(id){let p=db.projects.find(x=>x.id===id);if(!p||p.pgStatus==='Released')return;if(confirm('PG release হয়েছে নিশ্চিত?')){p.pgStatus='Released';p.pgReleaseDate=new Date().toISOString().slice(0,10);save()}}
+function projectCost(p){let ex=db.expenses.filter(x=>x.projectId===p.id).reduce((a,x)=>a+x.amount,0);let alloc=allocatedExpense(p);return {expense:ex,alloc,total:ex+alloc,profit:p.contract-(ex+alloc)}}
+function allocatedExpense(p){let awarded=db.projects.length||1;let total=db.tenders.filter(t=>t.status==='Awarded').reduce((a,t)=>a+t.schedule+t.other,0);return total/awarded}
+function renderAll(){renderDashboard();renderTenders();renderProjects();renderExpenses();renderVendors();renderInvestors();renderReports();sInv1.value=db.settings.inv1;sInv2.value=db.settings.inv2}
+function renderDashboard(){let ts=db.tenders.reduce((a,t)=>a+t.security,0),tr=db.tenders.filter(t=>t.securityStatus==='Returned').reduce((a,t)=>a+t.security,0),pg=db.projects.reduce((a,p)=>a+p.pg,0),pgr=db.projects.filter(p=>p.pgStatus==='Released').reduce((a,p)=>a+p.pg,0),contract=db.projects.reduce((a,p)=>a+p.contract,0),cost= db.projects.reduce((a,p)=>a+projectCost(p).total,0),pl=db.projects.reduce((a,p)=>a+projectCost(p).profit,0);cTenders.textContent=db.tenders.length;cProjects.textContent=db.projects.length;cTS.textContent=money(ts-tr);cPG.textContent=money(pg-pgr);cContract.textContent=money(contract);cCost.textContent=money(cost);cProfit.textContent=money(Math.max(pl,0));cLoss.textContent=money(Math.max(-pl,0));recentProjects.innerHTML=db.projects.slice(-5).reverse().map(p=>`<p><b>${p.name}</b> — ${money(p.contract)} — ${projectCost(p).profit>=0?'<span class="badge green">Profit</span>':'<span class="badge red">Loss</span>'}</p>`).join('')||'<span class="muted">কোনো Project নেই</span>'}
+function renderTenders(){tenderTable.innerHTML=`<table><tr><th>Tender ID</th><th>নাম</th><th>Department</th><th>Security</th><th>Schedule</th><th>Other Expense</th><th>Status</th><th>Security</th><th>Action</th></tr>${db.tenders.map(t=>`<tr><td>${t.tenderId}</td><td>${t.name}</td><td>${t.dept||''}</td><td>${money(t.security)}</td><td>${money(t.schedule)}</td><td>${money(t.other)}</td><td>${t.status}</td><td>${t.securityStatus}</td><td>${t.securityStatus==='Pending'?`<button class="btn secondary" onclick="returnSec('${t.id}')">Return</button>`:'Returned'}</td></tr>`).join('')}</table>`;projectTender.innerHTML='<option value="">-- Select --</option>'+db.tenders.filter(t=>t.status!=='Awarded').map(t=>`<option value="${t.id}">${t.tenderId} — ${t.name}</option>`).join('')}
+function renderProjects(){projectTable.innerHTML=`<table><tr><th>Project</th><th>Contract</th><th>PG</th><th>Allocated Tender Expense</th><th>Project Expense</th><th>Total Cost</th><th>Profit/Loss</th><th>PG Status</th><th>Action</th></tr>${db.projects.map(p=>{let c=projectCost(p);return `<tr><td><b>${p.name}</b><br><small>${p.tenderId}</small></td><td>${money(p.contract)}</td><td>${money(p.pg)}</td><td>${money(c.alloc)}</td><td>${money(c.expense)}</td><td>${money(c.total)}</td><td class="${c.profit>=0?'green':'red'}">${money(c.profit)}</td><td>${p.pgStatus}</td><td>${p.pgStatus==='Pending'?`<button class="btn secondary" onclick="releasePg('${p.id}')">Release PG</button>`:'Released'}</td></tr>`}).join('')}</table>`;eProject.innerHTML='<option value="">-- Select Project --</option>'+db.projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}
+function renderExpenses(){expenseTable.innerHTML=`<table><tr><th>Date</th><th>Project</th><th>Category</th><th>Amount</th><th>Description</th></tr>${db.expenses.map(x=>`<tr><td>${x.date}</td><td>${db.projects.find(p=>p.id===x.projectId)?.name||''}</td><td>${x.cat}</td><td>${money(x.amount)}</td><td>${x.desc||''}</td></tr>`).join('')}</table>`;eVendor.innerHTML='<option value="">-- None --</option>'+db.vendors.map(v=>`<option value="${v.id}">${v.name}</option>`).join('')}
+function vendorBalance(v){let tx=db.vendorTx.filter(x=>x.vendorId===v.id);let paid=tx.filter(x=>x.type==='advance').reduce((a,x)=>a+x.amount,0),purchase=tx.filter(x=>x.type==='purchase').reduce((a,x)=>a+x.amount,0);return {paid,purchase,balance:paid-purchase}}
+function renderVendors(){vendorTable.innerHTML=`<table><tr><th>Vendor</th><th>Advance/Payment</th><th>Material</th><th>Balance</th></tr>${db.vendors.map(v=>{let b=vendorBalance(v);return `<tr><td>${v.name}</td><td>${money(b.paid)}</td><td>${money(b.purchase)}</td><td>${b.balance>=0?money(b.balance)+' আমাদের Advance/পাওনা':money(-b.balance)+' Vendor-এর কাছে দেনা'}</td></tr>`}).join('')}</table>`}
+function renderInvestors(){iInvestor.innerHTML=`<option value="${db.settings.inv1}">${db.settings.inv1}</option><option value="${db.settings.inv2}">${db.settings.inv2}</option>`;investorTable.innerHTML=`<table><tr><th>Date</th><th>Investor</th><th>Type</th><th>Amount</th><th>Note</th></tr>${db.investorTx.map(x=>`<tr><td>${x.date}</td><td>${x.investor}</td><td>${x.type==='contribution'?'Capital Contribution':'Capital Return'}</td><td>${money(x.amount)}</td><td>${x.note||''}</td></tr>`).join('')}</table>`}
+function renderReports(){reportTable.innerHTML=`<table><tr><th>Project</th><th>Contract</th><th>Total Cost</th><th>Profit/Loss</th><th>Investor 1 50%</th><th>Investor 2 50%</th></tr>${db.projects.map(p=>{let c=projectCost(p),s=Math.abs(c.profit)/2;return `<tr><td>${p.name}</td><td>${money(p.contract)}</td><td>${money(c.total)}</td><td>${money(c.profit)}</td><td>${c.profit>=0?money(s)+' Profit':money(s)+' Loss'}</td><td>${c.profit>=0?money(s)+' Profit':money(s)+' Loss'}</td></tr>`}).join('')}</table>`;let a=db.investorTx.filter(x=>x.investor===db.settings.inv1),b=db.investorTx.filter(x=>x.investor===db.settings.inv2);let calc=x=>x.filter(t=>t.type==='contribution').reduce((s,t)=>s+t.amount,0)-x.filter(t=>t.type==='return').reduce((s,t)=>s+t.amount,0);investorSummary.innerHTML=`<p><b>${db.settings.inv1}</b>: Current Capital ${money(calc(a))}</p><p><b>${db.settings.inv2}</b>: Current Capital ${money(calc(b))}</p>`}
+function saveSettings(e){e.preventDefault();db.settings.inv1=sInv1.value||'Investor 1';db.settings.inv2=sInv2.value||'Investor 2';save();alert('Settings saved')}
+function exportJSON(){let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});download(blob,'tender-hisab-backup.json')}
+function exportCSV(){let rows=[['Type','ID','Name','Amount','Status']];db.tenders.forEach(t=>rows.push(['Tender',t.tenderId,t.name,t.security,t.status]));db.projects.forEach(p=>rows.push(['Project',p.projectId,p.name,p.contract,p.status]));let blob=new Blob([rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\\n')],{type:'text/csv'});download(blob,'tender-hisab-export.csv')}
+function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+document.getElementById('eDate').value=new Date().toISOString().slice(0,10);document.getElementById('iDate').value=new Date().toISOString().slice(0,10);renderAll();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>

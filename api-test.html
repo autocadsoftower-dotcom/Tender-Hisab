@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8"><title>Tender Hisab API Test</title>
+<p>Apps Script Web App URL এখানে বসান:</p>
+<input id="u" style="width:90%;padding:8px">
+<button onclick="test()">Test</button><pre id="o"></pre>
+<script>
+async function test(){
+ const u=document.getElementById('u').value.trim();
+ try{
+   const r=await fetch(u+'?action=health');
+   document.getElementById('o').textContent=await r.text();
+ }catch(e){document.getElementById('o').textContent=e}
+}
+</script>
